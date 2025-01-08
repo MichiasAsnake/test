@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -11,11 +10,10 @@ export default function Profile() {
   const [name, setName] = useState('')
   const [bio, setBio] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
-  const router = useRouter()
   const supabase = createClientComponentClient()
 
   useEffect(() => {
-    getProfile()
+    void getProfile()
   }, [])
 
   async function getProfile() {
@@ -57,21 +55,18 @@ export default function Profile() {
       const file = event.target.files?.[0]
       if (!file) return
 
-      // Get the current user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('No user found')
 
-      // Create a unique file path with user ID
       const fileExt = file.name.split('.').pop()
       const fileName = `${user.id}-${Math.random()}.${fileExt}`
-      const filePath = `${user.id}/${fileName}` // Organize files by user ID
+      const filePath = `${user.id}/${fileName}`
 
-      // Upload the file to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: true // This will replace any existing file
+          upsert: true
         })
 
       if (uploadError) {
@@ -79,7 +74,6 @@ export default function Profile() {
         throw uploadError
       }
 
-      // Update the profile with the new avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
         .upsert({
@@ -92,7 +86,6 @@ export default function Profile() {
         throw updateError
       }
 
-      // Update the UI
       setAvatarUrl(filePath)
     } catch (error) {
       console.error('Error uploading avatar:', error)
